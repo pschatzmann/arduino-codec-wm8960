@@ -1,30 +1,39 @@
 var indexSectionsWithContent =
 {
-  0: "amw",
-  1: "m",
+  0: "_amw",
+  1: "_",
   2: "m",
-  3: "w",
-  4: "w",
-  5: "a"
+  3: "m",
+  4: "m",
+  5: "w",
+  6: "mw",
+  7: "w",
+  8: "a"
 };
 
 var indexSectionNames =
 {
   0: "all",
-  1: "functions",
-  2: "enums",
-  3: "enumvalues",
-  4: "groups",
-  5: "pages"
+  1: "classes",
+  2: "files",
+  3: "functions",
+  4: "enums",
+  5: "enumvalues",
+  6: "defines",
+  7: "groups",
+  8: "pages"
 };
 
 var indexSectionLabels =
 {
   0: "All",
-  1: "Functions",
-  2: "Enumerations",
-  3: "Enumerator",
-  4: "Modules",
-  5: "Pages"
+  1: "Classes",
+  2: "Files",
+  3: "Functions",
+  4: "Enumerations",
+  5: "Enumerator",
+  6: "Macros",
+  7: "Modules",
+  8: "Pages"
 };
 

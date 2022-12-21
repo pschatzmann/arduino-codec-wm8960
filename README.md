@@ -2,33 +2,32 @@
 
 ### Overview
 
-This library provides functions to support use of the WM8960 audio codec available on the CY8CKIT-028-SENSE shield.
+This library provides functions to support the WM8960 audio codec. The Codec is connected via __I2S__ for the audio data and is configured via __I2C__.
 
-### Thread and Interrupt safety
-The APIs provided by this library are NOT thread or interrupt safe.
+It can drive some speakers via the amplifier output and supports full duplex mode where we can both read and write audio data at the same time.
 
-### Quick Start
-1. Create an empty application
-2. Add this library to the application
-3. Add the following code to your application.\n
-The wave.h and wave.c files can be pulled from this example:\n
-https://github.com/cypresssemiconductorco/mtb-example-psoc6-i2s
+This library is based on the [original provided by Infineon](https://github.com/Infineon/audio-codec-wm8960) and has been adapted for Arduino to use the Wire API.
 
-\note This example is targeted for Arduino-based boards.
+### Documentation
 
-```cpp
-TBD
-```
+- [API](https://pschatzmann.github.io/arduino-wm8960/docs/html/group__wm8960.html)
 
-### More information
+### WM8960 Audio HAT
 
-* [API Reference Guide](https://cypresssemiconductorco.github.io/audio-codec-wm8960/html/index.html)
-* [Cypress Semiconductor, an Infineon Technologies Company](http://www.cypress.com)
-* [Cypress Semiconductor GitHub](https://github.com/cypresssemiconductorco)
-* [ModusToolbox](https://www.cypress.com/products/modustoolbox-software-environment)
-* [PSoC 6 Code Examples using ModusToolbox IDE](https://github.com/cypresssemiconductorco/Code-Examples-for-ModusToolbox-Software)
-* [PSoC 6 Middleware](https://github.com/cypresssemiconductorco/psoc6-middleware)
-* [PSoC 6 Resources - KBA223067](https://community.cypress.com/docs/DOC-14644)
+![WM8960](docs/img/WM8960.jpeg)
 
----
-© Cypress Semiconductor Corporation, 2021.
+Func   | Module | Description
+-------|--------|-----------------------------------
+5V     | 5V	    | Power positive (5V power input)
+GND	   | GND	| Power Ground
+SDA	   | P2/SDA | I2C data input
+SCL	   | P3/SCL | I2C clock Input
+CLK	   | P18	| I2S bit clock input
+LRCLK  | P19	| I2S frame clock input
+DAC	   | P21	| I2S serial data output
+ADC	   | P20	| I2S serial data input
+Button | P17	| Configurable Button
+
+
+
+

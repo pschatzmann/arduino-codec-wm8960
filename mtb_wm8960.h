@@ -25,19 +25,23 @@
 #pragma once
 
 /**
- * \addtogroup group_board_libs WM8960 Audio Codec
- * \{
+ * @defgroup wm8960 WM8960 Audio Codec
+ * @brief Transmit Audio
+ */
+
+/**
  * Basic set of APIs for interacting with the WM8960 audio codec display.
  * This provides basic initialization and access to to the audio codec.
  */
 
-#include "cy_result.h"
-#include "cyhal_i2c.h"
+#include <stdbool.h>
+#include <Wire.h>
 
 #if defined(__cplusplus)
 extern "C"
 {
 #endif
+
 
 /**
  * \{
@@ -403,8 +407,7 @@ extern "C"
 /** \} WM8960_REG_PLL_N */
 
 /** Invalid argument was passed into a function. */
-#define MTB_RSLT_WM8960_BAD_ARG \
-    (CY_RSLT_CREATE(CY_RSLT_TYPE_ERROR, CY_RSLT_MODULE_BOARD_HARDWARE_WM8960, 0))
+#define MTB_RSLT_WM8960_BAD_ARG false
 
 /**
  * Enumeration for the WM8960 I2C Interface Register Addresses
@@ -530,6 +533,18 @@ typedef enum
 
 
 /**
+ * @brief Defines an alternative initialized Wire object. If this is not called we
+ * automatically use the Wire object and initialize it with begin().
+ * 
+ * @ingroup wm8960
+ * @param i2c_inst 
+ * @return true 
+ * @return false 
+ */
+bool mtb_wm8960_set_wire(TwoWire* i2c_inst);
+
+
+/**
  * Initialize the I2C communication with the audio codec, reset the codec
  * and apply default configuration based on the feature(s) requested.
  *
@@ -561,15 +576,15 @@ typedef enum
  * - ROUT1 Vol = 0dB, volume update enabled
  * - Unmute DAC digital soft mute
  *
- * @param[in] i2c_inst I2C instance to use for communicating with the WM8960 audio codec.
  * @param[in] features Features to enabled during initialization.
- *
- * @return CY_RSLT_SUCCESS if properly initialized, else an error indicating what went wrong.
+ * @ingroup wm8960
+ * @return true if properly initialized, else an error indicating what went wrong.
  */
-cy_rslt_t mtb_wm8960_init(cyhal_i2c_t* i2c_inst, mtb_wm8960_features_t features);
+bool mtb_wm8960_init(mtb_wm8960_features_t features);
 
 /**
  * Frees up any resources allocated by the driver as part of \ref mtb_wm8960_init().
+ * @ingroup wm8960
  */
 void mtb_wm8960_free();
 
@@ -580,10 +595,10 @@ void mtb_wm8960_free();
  * @param[in] volume - Steps of 0.75dB, where:
  *            Minimum volume:  -17.25dB (0x00)
  *            Maximum volume:  +30dB    (0x3F)
- *
- * @return CY_RSLT_SUCCESS if properly initialized, else an error indicating what went wrong.
+ * @ingroup wm8960
+ * @return true if properly initialized, else an error indicating what went wrong.
  */
-cy_rslt_t mtb_wm8960_adjust_input_volume(uint8_t volume);
+bool mtb_wm8960_adjust_input_volume(uint8_t volume);
 
 /**
  * This function updates the volume of both the left and right channels of the
@@ -593,10 +608,10 @@ cy_rslt_t mtb_wm8960_adjust_input_volume(uint8_t volume);
  *            Minimum volume: -73dB (0x30)
  *            Maximum volume: +6dB  (0x7F)
  *            Mute: (0x00~0x2F)
- *
- * @return CY_RSLT_SUCCESS if properly initialized, else an error indicating what went wrong.
+ * @ingroup wm8960
+ * @return true if properly initialized, else an error indicating what went wrong.
  */
-cy_rslt_t mtb_wm8960_adjust_heaphone_output_volume(uint8_t volume);
+bool mtb_wm8960_adjust_heaphone_output_volume(uint8_t volume);
 
 /**
  * This function powers up the modules the required for the features enabled using
@@ -604,10 +619,10 @@ cy_rslt_t mtb_wm8960_adjust_heaphone_output_volume(uint8_t volume);
  *
  * \note This function only updates the power management registers
  * (R25[0x19], R26[0x1A], R47[0x2F]) to enable the modules required for the enabled features.
- *
- * @return CY_RSLT_SUCCESS if properly initialized, else an error indicating what went wrong.
+ * @ingroup wm8960
+ * @return true if properly initialized, else an error indicating what went wrong.
  */
-cy_rslt_t mtb_wm8960_activate(void);
+bool mtb_wm8960_activate(void);
 
 /**
  * This function powers down the modules the required for the features enabled using
@@ -615,10 +630,10 @@ cy_rslt_t mtb_wm8960_activate(void);
  *
  * \note This function only updates the power management registers
  * (R25[0x19], R26[0x1A], R47[0x2F]) to disable the modules required for the enabled features.
- *
- * @return CY_RSLT_SUCCESS if properly initialized, else an error indicating what went wrong.
+ * @ingroup wm8960
+ * @return true if properly initialized, else an error indicating what went wrong.
  */
-cy_rslt_t mtb_wm8960_deactivate(void);
+bool mtb_wm8960_deactivate(void);
 
 /**
  * This function reads value of an audio codec register.
@@ -626,9 +641,9 @@ cy_rslt_t mtb_wm8960_deactivate(void);
  * @param[in]  reg    The audio codec register to read
  * @param[out] data   The reference to read the audio codec register data into.
  *
- * @return CY_RSLT_SUCCESS if properly initialized, else an error indicating what went wrong.
+ * @return true if properly initialized, else an error indicating what went wrong.
  */
-cy_rslt_t mtb_wm8960_read(mtb_wm8960_reg_t reg, uint16_t* data);
+bool mtb_wm8960_read(mtb_wm8960_reg_t reg, uint16_t* data);
 
 /**
  * This function writes data to an audio codec register.
@@ -636,9 +651,9 @@ cy_rslt_t mtb_wm8960_read(mtb_wm8960_reg_t reg, uint16_t* data);
  * @param[in] reg   The audio codec register to update
  * @param[in] data  The data to be written to the audio codec register
  *
- * @return CY_RSLT_SUCCESS if properly initialized, else an error indicating what went wrong.
+ * @return true if properly initialized, else an error indicating what went wrong.
  */
-cy_rslt_t mtb_wm8960_write(mtb_wm8960_reg_t reg, uint16_t data);
+bool mtb_wm8960_write(mtb_wm8960_reg_t reg, uint16_t data);
 
 /**
  * This function sets bits in a register.  This function can be used instead
@@ -649,9 +664,9 @@ cy_rslt_t mtb_wm8960_write(mtb_wm8960_reg_t reg, uint16_t data);
  * @param[in] reg   The audio codec register to update
  * @param[in] mask  The mask used to set bits in the register
  *
- * @return CY_RSLT_SUCCESS if properly initialized, else an error indicating what went wrong.
+ * @return true if properly initialized, else an error indicating what went wrong.
  */
-cy_rslt_t mtb_wm8960_set(mtb_wm8960_reg_t reg, uint16_t mask);
+bool mtb_wm8960_set(mtb_wm8960_reg_t reg, uint16_t mask);
 
 /**
  * This function clears bits in a register.  This function can be used instead
@@ -662,9 +677,9 @@ cy_rslt_t mtb_wm8960_set(mtb_wm8960_reg_t reg, uint16_t mask);
  * @param[in] reg   The audio codec register to update
  * @param[in] mask  The mask used to clear bits in the register
  *
- * @return CY_RSLT_SUCCESS if properly initialized, else an error indicating what went wrong.
+ * @return true if properly initialized, else an error indicating what went wrong.
  */
-cy_rslt_t mtb_wm8960_clear(mtb_wm8960_reg_t reg, uint16_t mask);
+bool mtb_wm8960_clear(mtb_wm8960_reg_t reg, uint16_t mask);
 
 /**
  * This function configures the master clock and the digital interface for the audio codec.
@@ -675,9 +690,10 @@ cy_rslt_t mtb_wm8960_clear(mtb_wm8960_reg_t reg, uint16_t mask);
  * @param[in] word_length   Word length
  * @param[in] mode          Mode the audio codec to operate as.
  *
- * @return CY_RSLT_SUCCESS if properly initialized, else an error indicating what went wrong.
+ * @ingroup wm8960
+ * @return true if properly initialized, else an error indicating what went wrong.
  */
-cy_rslt_t mtb_wm8960_configure_clocking(uint32_t mclk_hz, bool enable_pll,
+bool mtb_wm8960_configure_clocking(uint32_t mclk_hz, bool enable_pll,
                                         mtb_wm8960_adc_dac_sample_rate_t sample_rate,
                                         mtb_wm8960_word_length_t word_length,
                                         mtb_wm8960_mode_t mode);
