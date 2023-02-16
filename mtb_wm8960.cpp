@@ -10,10 +10,12 @@
  * $ Copyright 2021-YEAR Cypress Semiconductor $
  *******************************************************************************/
 #include "mtb_wm8960.h"
+#include "Arduino.h"
 
 #define WM8960_I2C_ADDRESS          (0x1A)
 #define WM8960_TIMEOUT_MS           (100u)
 #define REGISTER_MAP_SIZE           (56u)
+#define WM8960_LOG(msg)  Serial.println(msg)
 
 typedef bool (* _mtb_wm8960_update_data_t)(mtb_wm8960_reg_t reg, uint16_t value);
 
@@ -30,7 +32,7 @@ typedef struct
     uint16_t value;
 } _mtb_wm8960_operation_t;
 
-static TwoWire* i2c_ptr = NULL;
+static TwoWire* i2c_ptr = nullptr;
 static mtb_wm8960_features_t enabled_features;
 static bool pll_enabled = false;
 
@@ -47,7 +49,8 @@ static bool _mtb_wm8960_config_default(mtb_wm8960_features_t features)
 {
     bool result;
     uint16_t value;
-
+    WM8960_LOG("_mtb_wm8960_config_default");
+    
     /* Enable VREF and set VMID=50K */
     value = (WM8960_PWR_MGMT1_VREF_UP | WM8960_PWR_MGMT1_VMIDSEL_50K);
     if ((features & WM8960_FEATURE_MICROPHONE) == WM8960_FEATURE_MICROPHONE)
@@ -58,8 +61,9 @@ static bool _mtb_wm8960_config_default(mtb_wm8960_features_t features)
                   WM8960_PWR_MGMT1_MICB_UP);
     }
     result = mtb_wm8960_write(WM8960_REG_PWR_MGMT1, value);
-    if (result != true)
+    if (! result)
     {
+        WM8960_LOG("Enable VREF and set VMID=50K");
         return result;
     }
 
@@ -70,8 +74,9 @@ static bool _mtb_wm8960_config_default(mtb_wm8960_features_t features)
                                   WM8960_PWR_MGMT2_DACR_UP  |
                                   WM8960_PWR_MGMT2_LOUT1_UP |
                                   WM8960_PWR_MGMT2_ROUT1_UP);
-        if (result != true)
+        if (! result)
         {
+            WM8960_LOG("Enable DACL, DACR, LOUT1 and ROUT1");
             return result;
         }
     }
@@ -88,8 +93,9 @@ static bool _mtb_wm8960_config_default(mtb_wm8960_features_t features)
         value |= (WM8960_PWR_MGMT3_RMIC_UP | WM8960_PWR_MGMT3_LMIC_UP);
     }
     result = mtb_wm8960_write(WM8960_REG_PWR_MGMT3, value);
-    if (result != true)
+    if (! result)
     {
+        WM8960_LOG("WM8960_REG_PWR_MGMT3");
         return result;
     }
 
@@ -139,8 +145,9 @@ static bool _mtb_wm8960_config_default(mtb_wm8960_features_t features)
         if ((features & operation.features) == operation.features)
         {
             result = mtb_wm8960_write(operation.reg, operation.value);
-            if (result != true)
+            if (! result)
             {
+                WM8960_LOG("operation");
                 return result;
             }
         }
@@ -230,28 +237,28 @@ static bool _mtb_wm8960_setup_pll(uint32_t mclk_hz,
 
     /* Update the PLLN register */
     result = mtb_wm8960_write(WM8960_REG_PLL_N, PLLN | prescale_mask | WM8960_PLL_N_SDM_FRAC);
-    if (result != true)
+    if (! result)
     {
         return result;
     }
 
     /* Update PLLK1 with PLLK[23:16] */
     result = mtb_wm8960_write(WM8960_REG_PLL_K1, PLLK >> 16 & 0xFF);
-    if (result != true)
+    if (! result)
     {
         return result;
     }
 
     /* Update PLLK2 with PLLK[15:8] */
     result = mtb_wm8960_write(WM8960_REG_PLL_K2, PLLK >> 8 & 0xFF);
-    if (result != true)
+    if (! result)
     {
         return result;
     }
 
     /* Update PLLK3 with PLLK[7:0] */
     result = mtb_wm8960_write(WM8960_REG_PLL_K3, PLLK & 0xFF);
-    if (result != true)
+    if (! result)
     {
         return result;
     }
@@ -275,7 +282,7 @@ static bool _mtb_wm8960_adjust_volume(uint8_t volume, mtb_wm8960_reg_t left_vol_
     uint16_t data;
 
     result = mtb_wm8960_read(left_vol_reg, &data);
-    if (result != true)
+    if (! result)
     {
         return result;
     }
@@ -286,13 +293,13 @@ static bool _mtb_wm8960_adjust_volume(uint8_t volume, mtb_wm8960_reg_t left_vol_
     data |= volume;
 
     result = mtb_wm8960_write(left_vol_reg, data);
-    if (result != true)
+    if (! result)
     {
         return result;
     }
 
     result = mtb_wm8960_read(right_vol_reg, &data);
-    if (result != true)
+    if (! result)
     {
         return result;
     }
@@ -312,8 +319,11 @@ static bool _mtb_wm8960_adjust_volume(uint8_t volume, mtb_wm8960_reg_t left_vol_
 //--------------------------------------------------------------------------------------------------
 
 bool mtb_wm8960_set_wire(TwoWire* i2c_inst){
+    WM8960_LOG("mtb_wm8960_set_wire");
+
     /* Assign I2C hal object */
     i2c_ptr = i2c_inst;
+    return i2c_ptr!=nullptr;
 }
 
 
@@ -323,24 +333,38 @@ bool mtb_wm8960_set_wire(TwoWire* i2c_inst){
 bool mtb_wm8960_init(mtb_wm8960_features_t features)
 {
     // use Wire and start it
+    WM8960_LOG("mtb_wm8960_init");
+
     if (i2c_ptr==nullptr){
         i2c_ptr = &Wire;
+        WM8960_LOG("Wire.begin()");
         Wire.begin();
     }
 
+    //Wire.setSpeed(CLOCK_SPEED_100KHZ);
+
+
     bool result = mtb_wm8960_write(WM8960_REG_RESET, 0);
-    if (result != true)
+    if (! result)
     {
+        WM8960_LOG("mtb_wm8960_write failed");
         return result;
     }
+
+    delay(100);
 
     /* Call default configuration */
     if (features != WM8960_FEATURE_NONE)
     {
         result = _mtb_wm8960_config_default(features);
+        if (!result) {
+            WM8960_LOG("_mtb_wm8960_config_default failed");
+            return result;
+        }
     }
 
-    return result;
+    assert(result);
+    return true;
 }
 
 
@@ -365,7 +389,7 @@ bool mtb_wm8960_activate(void)
 
     /******************** PWR_MGMT1 *******************/
     result = mtb_wm8960_read(WM8960_REG_PWR_MGMT1, &value);
-    if (result != true)
+    if (! result)
     {
         return result;
     }
@@ -381,7 +405,7 @@ bool mtb_wm8960_activate(void)
                   WM8960_PWR_MGMT1_MICB_UP);
     }
     result = mtb_wm8960_write(WM8960_REG_PWR_MGMT1, value);
-    if (result != true)
+    if (! result)
     {
         return result;
     }
@@ -399,7 +423,7 @@ bool mtb_wm8960_activate(void)
                   WM8960_PWR_MGMT2_LOUT1_UP | WM8960_PWR_MGMT2_ROUT1_UP);
     }
     result = mtb_wm8960_set(WM8960_REG_PWR_MGMT2, value);
-    if (result != true)
+    if (! result)
     {
         return result;
     }
@@ -442,14 +466,14 @@ bool mtb_wm8960_deactivate(void)
         value |= (WM8960_PWR_MGMT3_RMIC_UP | WM8960_PWR_MGMT3_LMIC_UP);
     }
     result = mtb_wm8960_clear(WM8960_REG_PWR_MGMT3, value);
-    if (result != true)
+    if (! result)
     {
         return result;
     }
 
     /******************** PWR_MGMT2 *******************/
     result = mtb_wm8960_read(WM8960_REG_PWR_MGMT2, &value);
-    if (result != true)
+    if (! result)
     {
         return result;
     }
@@ -465,14 +489,14 @@ bool mtb_wm8960_deactivate(void)
                    WM8960_PWR_MGMT2_LOUT1_UP | WM8960_PWR_MGMT2_ROUT1_UP);
     }
     result = mtb_wm8960_write(WM8960_REG_PWR_MGMT2, value);
-    if (result != true)
+    if (! result)
     {
         return result;
     }
 
     /******************** PWR_MGMT1 *******************/
     result = mtb_wm8960_read(WM8960_REG_PWR_MGMT1, &value);
-    if (result != true)
+    if (! result)
     {
         return result;
     }
@@ -498,19 +522,20 @@ bool mtb_wm8960_deactivate(void)
 //--------------------------------------------------------------------------------------------------
 bool mtb_wm8960_write(mtb_wm8960_reg_t reg, uint16_t value)
 {
+    WM8960_LOG("mtb_wm8960_write");
     if (reg >= REGISTER_MAP_SIZE)
     {
         return false;
     }
 
-    bool result;
+    bool result = false;
 
     // uint8_t buf[] = { (reg << 1) | (CY_HI8(value) & 0x1), CY_LO8(value) };
     // result = cyhal_i2c_master_write(i2c_ptr, WM8960_I2C_ADDRESS, buf, sizeof(buf),
     //                                 WM8960_TIMEOUT_MS, true);
-        i2c_ptr->beginTransmission(WM8960_I2C_ADDRESS);
-        i2c_ptr->write((uint8_t*)&value, sizeof(uint16_t));
-        result = i2c_ptr->endTransmission();
+    i2c_ptr->beginTransmission(WM8960_I2C_ADDRESS);
+    i2c_ptr->write((uint8_t*)&value, sizeof(uint16_t));
+    result = i2c_ptr->endTransmission();
 
 
 
@@ -656,7 +681,7 @@ bool mtb_wm8960_configure_clocking(uint32_t mclk_hz, bool enable_pll,
     if (enable_pll)
     {
         result = _mtb_wm8960_setup_pll(mclk_hz, sample_rate);
-        if (result != true)
+        if (! result)
         {
             return result;
         }
@@ -719,7 +744,7 @@ bool mtb_wm8960_configure_clocking(uint32_t mclk_hz, bool enable_pll,
                               dac_div_mask     |
                               sysclk_div_mask  |
                               clk_sel_mask);
-    if (result != true)
+    if (! result)
     {
         return result;
     }
