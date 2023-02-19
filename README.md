@@ -8,26 +8,26 @@ It can drive some speakers via the amplifier output and supports full duplex mod
 
 This library is based on the [original provided by Infineon](https://github.com/Infineon/audio-codec-wm8960) and has been adapted for Arduino to use the Wire API.
 
+Though this library can be used stand alone, I recommend to use it with the WM8960Stream class provided by the [AudioTools](https://github.com/pschatzmann/arduino-audio-tool) project.
+
 ### Documentation
 
 - [API](https://pschatzmann.github.io/arduino-wm8960/docs/html/group__wm8960.html)
-
-### WM8960 Audio HAT
-
-![WM8960](docs/img/WM8960.jpeg)
-
-Func   | Module | Description
--------|--------|-----------------------------------
-5V     | 5V	    | Power positive (5V power input)
-GND	   | GND	| Power Ground
-SDA	   | P2/SDA | I2C data input
-SCL	   | P3/SCL | I2C clock Input
-CLK	   | P18	| I2S bit clock input
-LRCLK  | P19	| I2S frame clock input
-DAC	   | P21	| I2S serial data output
-ADC	   | P20	| I2S serial data input
-Button | P17	| Configurable Button
+- [Boards](https://github.com/pschatzmann/arduino-wm8960/wiki/Pins-Connections)
 
 
+### Installation in Arduino
+
+You can download the library as zip and call include Library -> zip library. Or you can git clone this project into the Arduino libraries folder e.g. with
+
+```
+cd  ~/Documents/Arduino/libraries
+git clone pschatzmann/arduino-wm8960.git
+```
+
+I recommend to use git because you can easily update to the latest version just by executing the ```git pull``` command in the project folder.
 
 
+### Desktop Installation
+
+You can use this library also outside of Arduino with cmake. In this case you need to provide the implementation for the i2c_write function yourself! 

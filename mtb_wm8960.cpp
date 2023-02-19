@@ -10,12 +10,10 @@
  * $ Copyright 2021-YEAR Cypress Semiconductor $
  *******************************************************************************/
 #include "mtb_wm8960.h"
-#include "Arduino.h"
 
-#define WM8960_I2C_ADDRESS          (0x1A)
 #define WM8960_TIMEOUT_MS           (100u)
 #define REGISTER_MAP_SIZE           (56u)
-#define WM8960_LOG(msg)  Serial.println(msg)
+
 
 typedef bool (* _mtb_wm8960_update_data_t)(mtb_wm8960_reg_t reg, uint16_t value);
 
@@ -32,9 +30,12 @@ typedef struct
     uint16_t value;
 } _mtb_wm8960_operation_t;
 
+#ifdef ARDUINO
 static TwoWire* i2c_ptr = nullptr;
+#endif
 static mtb_wm8960_features_t enabled_features;
 static bool pll_enabled = false;
+static uint32_t write_retry_count = 1;
 
 /* The WM8960 audio codec does not allow reading registers from the device so we
  * store a cached copy with default of the register map in the driver and is updated
@@ -50,7 +51,7 @@ static bool _mtb_wm8960_config_default(mtb_wm8960_features_t features)
     bool result;
     uint16_t value;
     WM8960_LOG("_mtb_wm8960_config_default");
-    
+
     /* Enable VREF and set VMID=50K */
     value = (WM8960_PWR_MGMT1_VREF_UP | WM8960_PWR_MGMT1_VMIDSEL_50K);
     if ((features & WM8960_FEATURE_MICROPHONE) == WM8960_FEATURE_MICROPHONE)
@@ -165,6 +166,7 @@ static bool _mtb_wm8960_config_default(mtb_wm8960_features_t features)
 static bool _mtb_wm8960_setup_pll(uint32_t mclk_hz,
                                        mtb_wm8960_adc_dac_sample_rate_t sample_rate)
 {
+    WM8960_LOG("_mtb_wm8960_setup_pll");
     bool result;
     uint8_t PLLN;
     uint32_t PLLK;
@@ -277,6 +279,7 @@ static bool _mtb_wm8960_adjust_volume(uint8_t volume, mtb_wm8960_reg_t left_vol_
                                            mtb_wm8960_reg_t right_vol_reg,
                                            uint16_t update_bit, uint16_t volume_bits_mask)
 {
+    WM8960_LOG("_mtb_wm8960_adjust_volume");
     /* Volume adjustment is done based on documentation datasheet(rev 4.4) pg 45 */
     bool result;
     uint16_t data;
@@ -314,6 +317,7 @@ static bool _mtb_wm8960_adjust_volume(uint8_t volume, mtb_wm8960_reg_t left_vol_
     return result;
 }
 
+#ifdef ARDUINO
 //--------------------------------------------------------------------------------------------------
 // mtb_wm8960_set_wire
 //--------------------------------------------------------------------------------------------------
@@ -325,6 +329,16 @@ bool mtb_wm8960_set_wire(TwoWire* i2c_inst){
     i2c_ptr = i2c_inst;
     return i2c_ptr!=nullptr;
 }
+#endif
+
+//--------------------------------------------------------------------------------------------------
+// mtb_wm8960_set_write_retry_count
+//--------------------------------------------------------------------------------------------------
+
+
+void mtb_wm8960_set_write_retry_count(uint32_t count){
+    write_retry_count = count;
+}
 
 
 //--------------------------------------------------------------------------------------------------
@@ -335,35 +349,34 @@ bool mtb_wm8960_init(mtb_wm8960_features_t features)
     // use Wire and start it
     WM8960_LOG("mtb_wm8960_init");
 
+#ifdef ARDUINO
     if (i2c_ptr==nullptr){
         i2c_ptr = &Wire;
         WM8960_LOG("Wire.begin()");
-        Wire.begin();
+        i2c_ptr->begin();
+        i2c_ptr->setClock(10000);
     }
-
-    //Wire.setSpeed(CLOCK_SPEED_100KHZ);
-
+#endif
 
     bool result = mtb_wm8960_write(WM8960_REG_RESET, 0);
-    if (! result)
+    if (!result)
     {
-        WM8960_LOG("mtb_wm8960_write failed");
-        return result;
+        return false;
     }
 
-    delay(100);
+
+    //delay(100);
 
     /* Call default configuration */
     if (features != WM8960_FEATURE_NONE)
     {
         result = _mtb_wm8960_config_default(features);
         if (!result) {
-            WM8960_LOG("_mtb_wm8960_config_default failed");
+            WM8960_LOG("_mtb_wm8960_config_default ERROR");
             return result;
         }
     }
 
-    assert(result);
     return true;
 }
 
@@ -373,7 +386,10 @@ bool mtb_wm8960_init(mtb_wm8960_features_t features)
 //--------------------------------------------------------------------------------------------------
 void mtb_wm8960_free(void)
 {
+    WM8960_LOG("mtb_wm8960_free");
+#ifdef ARDUINO
     i2c_ptr = NULL;
+#endif
     pll_enabled = false;
     enabled_features = WM8960_FEATURE_NONE;
 }
@@ -384,6 +400,7 @@ void mtb_wm8960_free(void)
 //--------------------------------------------------------------------------------------------------
 bool mtb_wm8960_activate(void)
 {
+    WM8960_LOG("mtb_wm8960_activate");
     bool result;
     uint16_t value;
 
@@ -451,6 +468,7 @@ bool mtb_wm8960_activate(void)
 //--------------------------------------------------------------------------------------------------
 bool mtb_wm8960_deactivate(void)
 {
+    WM8960_LOG("mtb_wm8960_deactivate");
     bool result;
     uint16_t value = 0;
 
@@ -520,29 +538,16 @@ bool mtb_wm8960_deactivate(void)
 //--------------------------------------------------------------------------------------------------
 // mtb_wm8960_write
 //--------------------------------------------------------------------------------------------------
-bool mtb_wm8960_write(mtb_wm8960_reg_t reg, uint16_t value)
+bool mtb_wm8960_write_ex(mtb_wm8960_reg_t enum_reg, uint16_t value)
 {
-    WM8960_LOG("mtb_wm8960_write");
-    if (reg >= REGISTER_MAP_SIZE)
-    {
-        return false;
-    }
+    uint8_t reg = enum_reg;
+    uint8_t data[2];
+    data[0] = (reg<<1)|((uint8_t)((value>>8)&0x0001));    //RegAddr
+    data[1] = (uint8_t)(value & 0x00FF);                  //RegValue
+    bool result = i2c_write(WM8960_I2C_ADDRESS, data);
 
-    bool result = false;
-
-    // uint8_t buf[] = { (reg << 1) | (CY_HI8(value) & 0x1), CY_LO8(value) };
-    // result = cyhal_i2c_master_write(i2c_ptr, WM8960_I2C_ADDRESS, buf, sizeof(buf),
-    //                                 WM8960_TIMEOUT_MS, true);
-    i2c_ptr->beginTransmission(WM8960_I2C_ADDRESS);
-    i2c_ptr->write((uint8_t*)&value, sizeof(uint16_t));
-    result = i2c_ptr->endTransmission();
-
-
-
-    if (result)
-    {
-        if (reg == WM8960_REG_RESET)
-        {
+    if (result) {
+        if (reg == WM8960_REG_RESET){
             static const uint16_t wm8960_default_register_map[REGISTER_MAP_SIZE] =
             {
                 0x0097, 0x0097, 0x0000, 0x0000, 0x0000, 0x0008, 0x0000, 0x000a, // R0~R7
@@ -555,14 +560,36 @@ bool mtb_wm8960_write(mtb_wm8960_reg_t reg, uint16_t value)
             };
 
             memcpy(&wm8960_register_map, &wm8960_default_register_map, REGISTER_MAP_SIZE);
-        }
-        else
-        {
-            /* Update register map */
+        } else {
+            // Update register map 
             wm8960_register_map[reg] = value;
         }
-    }
+    } 
+    return result;
+}
 
+#ifdef ARDUINO
+bool i2c_write(uint8_t address, uint8_t data[2]) {
+    i2c_ptr->beginTransmission(address);
+    i2c_ptr->write(data, 2);
+    int result = i2c_ptr->endTransmission(true);
+    return result == 0;
+}
+#endif
+
+
+bool mtb_wm8960_write(mtb_wm8960_reg_t enum_reg, uint16_t value){
+    char msg[80];
+    snprintf(msg, 80,  "mtb_wm8960_write 0x%x = 0x%x", enum_reg, value );
+    WM8960_LOG(msg);
+    bool result = false;
+    uint32_t count=0;
+    while(!result){
+        result = mtb_wm8960_write_ex(enum_reg, value);
+        if (count>0 && count++ > write_retry_count){
+            break;
+        }
+    }
     return result;
 }
 
@@ -578,12 +605,10 @@ bool mtb_wm8960_read(mtb_wm8960_reg_t reg, uint16_t* value)
     }
 
     *value = wm8960_register_map[reg];
-    // bool result = i2c_ptr->requestFrom(WM8960_I2C_ADDRESS, sizeof(uint16_t));
-    // uint8_t *p_byte = (uint8_t *)value;
-    // *value = i2c_ptr->read();
 
     return true;
 }
+
 
 
 //--------------------------------------------------------------------------------------------------
@@ -597,7 +622,7 @@ bool mtb_wm8960_set(mtb_wm8960_reg_t reg, uint16_t mask)
     result = mtb_wm8960_read(reg, &data);
     if (result)
     {
-        result = mtb_wm8960_write(reg, data | mask);
+        result = mtb_wm8960_write((mtb_wm8960_reg_t)reg, data | mask);
     }
 
     return result;
@@ -627,6 +652,7 @@ bool mtb_wm8960_clear(mtb_wm8960_reg_t reg, uint16_t mask)
 //--------------------------------------------------------------------------------------------------
 bool mtb_wm8960_adjust_input_volume(uint8_t volume)
 {
+    WM8960_LOG("mtb_wm8960_adjust_input_volume");
     if (volume > WM8960_LEFT_RIGHT_IN_VOL_INVOL_30dB)
     {
         return false;
@@ -643,6 +669,7 @@ bool mtb_wm8960_adjust_input_volume(uint8_t volume)
 //--------------------------------------------------------------------------------------------------
 bool mtb_wm8960_adjust_heaphone_output_volume(uint8_t volume)
 {
+    WM8960_LOG("mtb_wm8960_adjust_heaphone_output_volume");
     if (volume > WM8960_LOUT1_ROUT1_VOL_OUT1VOL_6dB)
     {
         return false;
@@ -662,6 +689,7 @@ bool mtb_wm8960_configure_clocking(uint32_t mclk_hz, bool enable_pll,
                                         mtb_wm8960_word_length_t word_length,
                                         mtb_wm8960_mode_t mode)
 {
+    WM8960_LOG("mtb_wm8960_configure_clocking");
     bool result;
     uint16_t dac_div_mask;
     uint16_t adc_div_mask;
@@ -756,3 +784,20 @@ bool mtb_wm8960_configure_clocking(uint32_t mclk_hz, bool enable_pll,
 
     return result;
 }
+
+bool mtb_wm8960_dump(){
+    WM8960_LOG("mtb_wm8960_dump");
+    char msg[80];
+    for (int j=0x1;j<=0x37;j++){
+        uint16_t data;
+        if (!mtb_wm8960_read((mtb_wm8960_reg_t)j, &data)){
+            WM8960_LOG("mtb_wm8960_dump ERROR");
+            return false;
+        }
+
+        snprintf(msg, 80, "%x: %x",j, data);
+        WM8960_LOG(msg);
+    }
+    return true;
+}
+

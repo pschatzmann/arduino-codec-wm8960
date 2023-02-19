@@ -33,7 +33,8 @@ var menudata={children:[
 {text:"File List",url:"files.html"},
 {text:"File Members",url:"globals.html",children:[
 {text:"All",url:"globals.html",children:[
-{text:"m",url:"globals.html#index_m"},
+{text:"i",url:"globals.html#index_i"},
+{text:"m",url:"globals_m.html#index_m"},
 {text:"w",url:"globals_w.html#index_w"}]},
 {text:"Functions",url:"globals_func.html"},
 {text:"Enumerations",url:"globals_enum.html"},

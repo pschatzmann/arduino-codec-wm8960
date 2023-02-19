@@ -35,13 +35,27 @@
  */
 
 #include <stdbool.h>
-#include <Wire.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+
+#ifdef ARDUINO
+#  include <Arduino.h>
+#  include <Wire.h>
+#endif
 
 #if defined(__cplusplus)
 extern "C"
 {
 #endif
 
+#define WM8960_I2C_ADDRESS          (0x1A)
+
+#ifdef ARDUINO
+#  define WM8960_LOG(msg)  Serial.println(msg)
+#else
+#  define WM8960_LOG(msg)  
+#endif
 
 /**
  * \{
@@ -531,9 +545,10 @@ typedef enum
     WM8960_MODE_SLAVE  = WM8960_AUDIO_INTF0_MS_SLAVE    /**< Slave mode */
 } mtb_wm8960_mode_t;
 
+#ifdef ARDUINO
 
 /**
- * @brief Defines an alternative initialized Wire object. If this is not called we
+ * @brief Provide an alternative initialized Wire object. If this is not called we
  * automatically use the Wire object and initialize it with begin().
  * 
  * @ingroup wm8960
@@ -543,9 +558,21 @@ typedef enum
  */
 bool mtb_wm8960_set_wire(TwoWire* i2c_inst);
 
+#endif
 
 /**
- * Initialize the I2C communication with the audio codec, reset the codec
+ * @brief Defines the number of times we retry to update a register value via I2C.
+ * This might help if you have an instable I2C connection. By default we set it to 1
+ * which will cause the initialization to fail when the register update fails.
+ * @ingroup wm8960
+ * @param count; 0: retry endlessly until success; any number > 0 = number of retries 
+ * 
+*/
+void mtb_wm8960_set_write_retry_count(uint32_t count);
+
+
+/**
+ * @brief Initialize the I2C communication with the audio codec, reset the codec
  * and apply default configuration based on the feature(s) requested.
  *
  * If either WM8960_FEATURE_MICROPHONE or WM8960_FEATURE_HEADPHONE is requested,
@@ -583,13 +610,13 @@ bool mtb_wm8960_set_wire(TwoWire* i2c_inst);
 bool mtb_wm8960_init(mtb_wm8960_features_t features);
 
 /**
- * Frees up any resources allocated by the driver as part of \ref mtb_wm8960_init().
+ * @brief Frees up any resources allocated by the driver as part of \ref mtb_wm8960_init().
  * @ingroup wm8960
  */
 void mtb_wm8960_free();
 
 /**
- * This function updates the volume of both the left and right channels of the
+ * @brief This function updates the volume of both the left and right channels of the
  * microphone input.
  *
  * @param[in] volume - Steps of 0.75dB, where:
@@ -601,7 +628,7 @@ void mtb_wm8960_free();
 bool mtb_wm8960_adjust_input_volume(uint8_t volume);
 
 /**
- * This function updates the volume of both the left and right channels of the
+ * @brief This function updates the volume of both the left and right channels of the
  * headphone output.
  *
  * @param[in] volume - Steps of 1dB, where:
@@ -614,7 +641,7 @@ bool mtb_wm8960_adjust_input_volume(uint8_t volume);
 bool mtb_wm8960_adjust_heaphone_output_volume(uint8_t volume);
 
 /**
- * This function powers up the modules the required for the features enabled using
+ * @brief This function powers up the modules the required for the features enabled using
  * \ref mtb_wm8960_init. This function is called in conjunction with \ref mtb_wm8960_deactivate.
  *
  * \note This function only updates the power management registers
@@ -625,7 +652,7 @@ bool mtb_wm8960_adjust_heaphone_output_volume(uint8_t volume);
 bool mtb_wm8960_activate(void);
 
 /**
- * This function powers down the modules the required for the features enabled using
+ * @brief This function powers down the modules the required for the features enabled using
  * \ref mtb_wm8960_init.
  *
  * \note This function only updates the power management registers
@@ -636,7 +663,7 @@ bool mtb_wm8960_activate(void);
 bool mtb_wm8960_deactivate(void);
 
 /**
- * This function reads value of an audio codec register.
+ * @brief This function reads value of an audio codec register.
  *
  * @param[in]  reg    The audio codec register to read
  * @param[out] data   The reference to read the audio codec register data into.
@@ -646,7 +673,7 @@ bool mtb_wm8960_deactivate(void);
 bool mtb_wm8960_read(mtb_wm8960_reg_t reg, uint16_t* data);
 
 /**
- * This function writes data to an audio codec register.
+ * @brief This function writes data to an audio codec register.
  *
  * @param[in] reg   The audio codec register to update
  * @param[in] data  The data to be written to the audio codec register
@@ -656,7 +683,7 @@ bool mtb_wm8960_read(mtb_wm8960_reg_t reg, uint16_t* data);
 bool mtb_wm8960_write(mtb_wm8960_reg_t reg, uint16_t data);
 
 /**
- * This function sets bits in a register.  This function can be used instead
+ * @brief This function sets bits in a register.  This function can be used instead
  * of mtb_wm8960_write() if you want to change a single bit or select bits in
  * the register and preserve the value of other bits in the register. Only the bits
  * set to 1 in the mask are affected.
@@ -669,7 +696,7 @@ bool mtb_wm8960_write(mtb_wm8960_reg_t reg, uint16_t data);
 bool mtb_wm8960_set(mtb_wm8960_reg_t reg, uint16_t mask);
 
 /**
- * This function clears bits in a register.  This function can be used instead
+ * @brief This function clears bits in a register.  This function can be used instead
  * of mtb_wm8960_write() if you want to change a single bit or select bits in
  * the register and preserve the value of other bits in the register. Only the bits
  * set to 1 in the mask are affected.
@@ -682,7 +709,7 @@ bool mtb_wm8960_set(mtb_wm8960_reg_t reg, uint16_t mask);
 bool mtb_wm8960_clear(mtb_wm8960_reg_t reg, uint16_t mask);
 
 /**
- * This function configures the master clock and the digital interface for the audio codec.
+ * @brief This function configures the master clock and the digital interface for the audio codec.
  *
  * @param[in] mclk_hz       The master clock (MCLK) frequency
  * @param[in] enable_pll    Set true to enable PLL and false to disable PLL
@@ -697,6 +724,26 @@ bool mtb_wm8960_configure_clocking(uint32_t mclk_hz, bool enable_pll,
                                         mtb_wm8960_adc_dac_sample_rate_t sample_rate,
                                         mtb_wm8960_word_length_t word_length,
                                         mtb_wm8960_mode_t mode);
+
+
+/**
+ * @brief This function dumps the actual register values
+ *
+ * @param[in] reg   The audio codec register to update
+ * @param[in] mask  The mask used to clear bits in the register
+ * @ingroup wm8960
+ *
+ * @return true if properly initialized, else an error indicating what went wrong.
+ */
+bool mtb_wm8960_dump();
+
+
+/**
+ * Platform dependent i2c write. If you compile this library outside of Arduino you need to provide
+ * your own implementation.
+*/
+bool i2c_write(uint8_t address, uint8_t data[2]);
+
 
 #if defined(__cplusplus)
 }
