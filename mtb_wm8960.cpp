@@ -25,7 +25,7 @@ typedef enum
 
 typedef struct
 {
-    mtb_wm8960_features_t features;
+    uint8_t features;
     mtb_wm8960_reg_t reg;
     uint16_t value;
 } _mtb_wm8960_operation_t;
@@ -53,7 +53,9 @@ static bool _mtb_wm8960_config_default(uint8_t features)
 
     /* Enable VREF and set VMID=50K */
     value = (WM8960_PWR_MGMT1_VREF_UP | WM8960_PWR_MGMT1_VMIDSEL_50K);
-    if (features & WM8960_FEATURE_MICROPHONE)
+    if (features & WM8960_FEATURE_MICROPHONE1
+    || features & WM8960_FEATURE_MICROPHONE2
+    || features & WM8960_FEATURE_MICROPHONE3)
     {
         /* AINL, AINR, ADCL, ADCR and MICB */
         value |= (WM8960_PWR_MGMT1_AINL_UP | WM8960_PWR_MGMT1_AINR_UP |
@@ -98,45 +100,61 @@ static bool _mtb_wm8960_config_default(uint8_t features)
         }
     }
 
-    value = 0;
+    uint16_t pwr_mgmt3 = 0;
     /* Enable left output mixer and right output mixer */
     if (features & WM8960_FEATURE_HEADPHONE || features & WM8960_FEATURE_SPEAKER) 
     {
-        value |= (WM8960_PWR_MGMT3_LOMIX_UP | WM8960_PWR_MGMT3_ROMIX_UP);
+        pwr_mgmt3 |= (WM8960_PWR_MGMT3_LOMIX_UP | WM8960_PWR_MGMT3_ROMIX_UP);
     }
     /* Enable left and right channel input PGA */
-    if ((features & WM8960_FEATURE_MICROPHONE) == WM8960_FEATURE_MICROPHONE)
+    uint16_t mic_sig_path = WM8960_ADCL_ADCR_SIG_PTH_MIC2B_CON; ;
+    if (features & WM8960_FEATURE_MICROPHONE1
+    || features & WM8960_FEATURE_MICROPHONE2
+    || features & WM8960_FEATURE_MICROPHONE3)
     {
-        value |= (WM8960_PWR_MGMT3_RMIC_UP | WM8960_PWR_MGMT3_LMIC_UP);
+        pwr_mgmt3 |= (WM8960_PWR_MGMT3_RMIC_UP | WM8960_PWR_MGMT3_LMIC_UP);
+        // determine mic_sig_path
+        if (features & WM8960_FEATURE_MICROPHONE1){
+            mic_sig_path |= WM8960_ADCL_ADCR_SIG_PTH_MN1_CON;
+        }
+        if (features & WM8960_FEATURE_MICROPHONE2){
+            mic_sig_path |= WM8960_ADCL_ADCR_SIG_PTH_MP2_CON;
+        }
+        if (features & WM8960_FEATURE_MICROPHONE3){
+            mic_sig_path |= WM8960_ADCL_ADCR_SIG_PTH_MP3_CON;
+        }
+
     }
-    result = mtb_wm8960_write(WM8960_REG_PWR_MGMT3, value);
+    result = mtb_wm8960_write(WM8960_REG_PWR_MGMT3, pwr_mgmt3);
     if (! result)
     {
         WM8960_LOG("WM8960_REG_PWR_MGMT3");
         return result;
     }
 
+    
+
     static const _mtb_wm8960_operation_t operations[] =
     {
         /* LINPUT1 to PGA (LMN1), Connect left input PGA to left input boost (LMIC2B), Left PGA
            Boost = 0dB */
-        { .features = WM8960_FEATURE_MICROPHONE, .reg   = WM8960_REG_ADCL_SIG_PTH,
-          .value = (WM8960_ADCL_ADCR_SIG_PTH_MN1_CON | WM8960_ADCL_ADCR_SIG_PTH_MIC2B_CON) },
+        { .features = WM8960_FEATURE_MICROPHONES, .reg   = WM8960_REG_ADCL_SIG_PTH,
+          .value = mic_sig_path },
         /* RINPUT1 to PGA (RMN1), Connect right input PGA to right input boost (RMIC2B), Right PGA
            Boost = 0dB */
-        { .features = WM8960_FEATURE_MICROPHONE, .reg   = WM8960_REG_ADCR_SIG_PTH,
-          .value = (WM8960_ADCL_ADCR_SIG_PTH_MN1_CON | WM8960_ADCL_ADCR_SIG_PTH_MIC2B_CON) },
+        { .features = WM8960_FEATURE_MICROPHONES, .reg   = WM8960_REG_ADCR_SIG_PTH,
+          .value = mic_sig_path },
         /* Unmute left input PGA (LINMUTE), Left Input PGA Vol = 0dB, Volume Update */
-        { .features = WM8960_FEATURE_MICROPHONE, .reg   = WM8960_REG_LEFT_IN_VOL,
+        { .features = WM8960_FEATURE_MICROPHONES, .reg   = WM8960_REG_LEFT_IN_VOL,
           .value = (WM8960_LEFT_RIGHT_IN_VOL_IPVU | WM8960_LEFT_RIGHT_IN_VOL_INVOL_0dB) },
         /* Unmute right input PGA (RINMUTE), Right Input PGA Vol = 0dB, Volume Update */
-        { .features = WM8960_FEATURE_MICROPHONE, .reg   = WM8960_REG_RIGHT_IN_VOL,
+        { .features = WM8960_FEATURE_MICROPHONES, .reg   = WM8960_REG_RIGHT_IN_VOL,
           .value = (WM8960_LEFT_RIGHT_IN_VOL_IPVU | WM8960_LEFT_RIGHT_IN_VOL_INVOL_0dB) },
         /* Left ADC Vol = 0dB, Volume Update */
-        { .features = WM8960_FEATURE_MICROPHONE, .reg   = WM8960_REG_LEFT_ADC_VOL,
+        { .features = WM8960_FEATURE_MICROPHONES, .reg   = WM8960_REG_LEFT_ADC_VOL,
           .value = (WM8960_LEFT_RIGHT_ADC_VOL_ADCVU_UP | WM8960_LEFT_RIGHT_ADC_VOL_ADCVOL_0dB) },
         /* Right ADC Vol = 0dB, Volume Update */
-        { .features = WM8960_FEATURE_MICROPHONE, .reg   = WM8960_REG_RIGHT_ADC_VOL,
+        { .features = WM8960_FEATURE_MICROPHONES, .reg   = WM8960_REG_RIGHT_ADC_VOL,
           .value = (WM8960_LEFT_RIGHT_ADC_VOL_ADCVU_UP | WM8960_LEFT_RIGHT_ADC_VOL_ADCVOL_0dB) },
 
         /* Left DAC to left output mixed enabled (LD2LO), 0dB */
@@ -447,7 +465,9 @@ bool mtb_wm8960_activate(void)
     value &= ~WM8960_PWR_MGMT1_VMIDSEL_5K;
     /* Set VMID=50K for playback and recording */
     value |= (WM8960_PWR_MGMT1_VMIDSEL_50K);
-    if ((enabled_features & WM8960_FEATURE_MICROPHONE) == WM8960_FEATURE_MICROPHONE)
+    if (enabled_features & WM8960_FEATURE_MICROPHONE1
+    || enabled_features & WM8960_FEATURE_MICROPHONE2
+    || enabled_features & WM8960_FEATURE_MICROPHONE3)
     {
         /* AINL, AINR, ADCL, ADCR and MICB */
         value |= (WM8960_PWR_MGMT1_AINL_UP | WM8960_PWR_MGMT1_AINR_UP |
@@ -491,7 +511,9 @@ bool mtb_wm8960_activate(void)
         value |= (WM8960_PWR_MGMT3_LOMIX_UP | WM8960_PWR_MGMT3_ROMIX_UP);
     }
     /* Enable left and right channel input PGA */
-    if ((enabled_features & WM8960_FEATURE_MICROPHONE) == WM8960_FEATURE_MICROPHONE)
+    if (enabled_features & WM8960_FEATURE_MICROPHONE1
+    || enabled_features & WM8960_FEATURE_MICROPHONE2
+    || enabled_features & WM8960_FEATURE_MICROPHONE3)
     {
         value |= (WM8960_PWR_MGMT3_RMIC_UP | WM8960_PWR_MGMT3_LMIC_UP);
     }
@@ -517,7 +539,9 @@ bool mtb_wm8960_deactivate(void)
         value |= (WM8960_PWR_MGMT3_LOMIX_UP | WM8960_PWR_MGMT3_ROMIX_UP);
     }
     /* Disable left and right channel input PGA */
-    if ((enabled_features & WM8960_FEATURE_MICROPHONE) == WM8960_FEATURE_MICROPHONE)
+    if (enabled_features & WM8960_FEATURE_MICROPHONE1
+    || enabled_features & WM8960_FEATURE_MICROPHONE2
+    || enabled_features & WM8960_FEATURE_MICROPHONE3)
     {
         value |= (WM8960_PWR_MGMT3_RMIC_UP | WM8960_PWR_MGMT3_LMIC_UP);
     }
@@ -567,7 +591,9 @@ bool mtb_wm8960_deactivate(void)
     value &= ~WM8960_PWR_MGMT1_VMIDSEL_5K;
     /* Set VMID=250K for low power standby */
     value |= WM8960_PWR_MGMT1_VMIDSEL_250K;
-    if ((enabled_features & WM8960_FEATURE_MICROPHONE) == WM8960_FEATURE_MICROPHONE)
+    if (enabled_features & WM8960_FEATURE_MICROPHONE1
+    || enabled_features & WM8960_FEATURE_MICROPHONE2
+    || enabled_features & WM8960_FEATURE_MICROPHONE3)
     {
         /* Disable AINL, AINR, ADCL, ADCR and MICB */
         value &= ~(WM8960_PWR_MGMT1_AINL_UP | WM8960_PWR_MGMT1_AINR_UP |

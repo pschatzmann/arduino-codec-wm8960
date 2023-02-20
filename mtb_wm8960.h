@@ -501,11 +501,15 @@ typedef enum
  */
 typedef enum
 {
-    WM8960_FEATURE_NONE       = 0x00,                   /**< No features enabled */
-    WM8960_FEATURE_MICROPHONE = 0x01,                   /**< Enable the microphone */
-    WM8960_FEATURE_HEADPHONE  = 0x02,                    /**< Enable the headphone */
-    WM8960_FEATURE_SPEAKER    = 0x04                    /**< Enable the class D speaker */
+    WM8960_FEATURE_NONE        = 0x00,                   /**< No features enabled */
+    WM8960_FEATURE_MICROPHONE1 = 0x01,                   /**< Enable the microphone */
+    WM8960_FEATURE_MICROPHONE2 = 0x02,                   /**< Enable the microphone */
+    WM8960_FEATURE_MICROPHONE3 = 0x04,                   /**< Enable the microphone */
+    WM8960_FEATURE_HEADPHONE   = 0x08,                    /**< Enable the headphone */
+    WM8960_FEATURE_SPEAKER     = 0x10                    /**< Enable the class D speaker */
 } mtb_wm8960_features_t;
+
+#define WM8960_FEATURE_MICROPHONES (WM8960_FEATURE_MICROPHONE1|WM8960_FEATURE_MICROPHONE2|WM8960_FEATURE_MICROPHONE3)
 
 /**
  * Enumeration for supported sample rates for ADC and DAC in the WM8960
