@@ -33,7 +33,7 @@ typedef struct
 #ifdef ARDUINO
 static TwoWire* i2c_ptr = nullptr;
 #endif
-static mtb_wm8960_features_t enabled_features;
+static uint8_t enabled_features;
 static bool pll_enabled = false;
 static uint32_t write_retry_count = 1;
 
@@ -46,15 +46,14 @@ static uint16_t wm8960_register_map[REGISTER_MAP_SIZE];
 //--------------------------------------------------------------------------------------------------
 // _mtb_wm8960_config_default
 //--------------------------------------------------------------------------------------------------
-static bool _mtb_wm8960_config_default(mtb_wm8960_features_t features)
+static bool _mtb_wm8960_config_default(uint8_t features)
 {
     bool result;
     uint16_t value;
-    WM8960_LOG("_mtb_wm8960_config_default");
 
     /* Enable VREF and set VMID=50K */
     value = (WM8960_PWR_MGMT1_VREF_UP | WM8960_PWR_MGMT1_VMIDSEL_50K);
-    if ((features & WM8960_FEATURE_MICROPHONE) == WM8960_FEATURE_MICROPHONE)
+    if (features & WM8960_FEATURE_MICROPHONE)
     {
         /* AINL, AINR, ADCL, ADCR and MICB */
         value |= (WM8960_PWR_MGMT1_AINL_UP | WM8960_PWR_MGMT1_AINR_UP |
@@ -69,12 +68,17 @@ static bool _mtb_wm8960_config_default(mtb_wm8960_features_t features)
     }
 
     /* Enable DACL, DACR, LOUT1 and ROUT1 */
-    if ((features & WM8960_FEATURE_HEADPHONE) == WM8960_FEATURE_HEADPHONE)
+    if (features & WM8960_FEATURE_HEADPHONE || features & WM8960_FEATURE_SPEAKER)
     {
-        result = mtb_wm8960_write(WM8960_REG_PWR_MGMT2, WM8960_PWR_MGMT2_DACL_UP  |
-                                  WM8960_PWR_MGMT2_DACR_UP  |
-                                  WM8960_PWR_MGMT2_LOUT1_UP |
-                                  WM8960_PWR_MGMT2_ROUT1_UP);
+        value = 0;
+        if (features & WM8960_FEATURE_HEADPHONE){
+            value |= WM8960_PWR_MGMT2_DACL_UP  | WM8960_PWR_MGMT2_DACR_UP  | WM8960_PWR_MGMT2_LOUT1_UP | WM8960_PWR_MGMT2_ROUT1_UP;
+        }
+        if (features & WM8960_FEATURE_SPEAKER){
+            value |= WM8960_PWR_MGMT2_DACL_UP  | WM8960_PWR_MGMT2_DACR_UP  | WM8960_PWR_MGMT2_SPKL_UP | WM8960_PWR_MGMT2_SPKR_UP;
+        }
+
+        result = mtb_wm8960_write(WM8960_REG_PWR_MGMT2, value);
         if (! result)
         {
             WM8960_LOG("Enable DACL, DACR, LOUT1 and ROUT1");
@@ -82,9 +86,21 @@ static bool _mtb_wm8960_config_default(mtb_wm8960_features_t features)
         }
     }
 
+    /* Enable DACL, DACR, LOUT2 and ROUT2 */
+    if (features & WM8960_FEATURE_SPEAKER)
+    {
+        // R49 Class D Control  011110111 - Enable Class D Speaker Outputs
+        result = mtb_wm8960_write(WM8960_REG_CLASS_D_CTL1, 0xF7);
+        if (! result)
+        {
+            WM8960_LOG("Enable Class D");
+            return result;
+        }
+    }
+
     value = 0;
     /* Enable left output mixer and right output mixer */
-    if ((features & WM8960_FEATURE_HEADPHONE) == WM8960_FEATURE_HEADPHONE)
+    if (features & WM8960_FEATURE_HEADPHONE || features & WM8960_FEATURE_SPEAKER) 
     {
         value |= (WM8960_PWR_MGMT3_LOMIX_UP | WM8960_PWR_MGMT3_ROMIX_UP);
     }
@@ -138,6 +154,23 @@ static bool _mtb_wm8960_config_default(mtb_wm8960_features_t features)
         /* Unmute DAC digital soft mute */
         { .features = WM8960_FEATURE_HEADPHONE,  .reg   = WM8960_REG_CTR1,
           .value = WM8960_CTR1_DACMU_NO },
+
+        /* Left DAC to left output mixed enabled (LD2LO), 0dB */
+        { .features = WM8960_FEATURE_SPEAKER,  .reg   = WM8960_REG_LEFT_OUT_MIX,
+          .value = WM8960_LEFT_OUT_MIX_LD2LO_EN },
+        /* Right DAC to right output mixed enabled (RD2RO), 0dB */
+        { .features = WM8960_FEATURE_SPEAKER,  .reg   = WM8960_REG_RIGHT_OUT_MIX,
+          .value = WM8960_RIGHT_OUT_MIX_RD2RO_EN },
+        /* LOUT2 Volume = 0dB, volume updated */
+        { .features = WM8960_FEATURE_SPEAKER,  .reg   = WM8960_REG_LOUT2_VOL,
+          .value = (WM8960_LOUT1_ROUT1_VOL_OUT1VU | WM8960_LOUT1_ROUT1_VOL_OUT1VOL_0dB) },
+        /* ROUT2 Volume = 0dB, volume updated */
+        { .features = WM8960_FEATURE_SPEAKER,  .reg   = WM8960_REG_ROUT2_VOL,
+          .value = (WM8960_LOUT1_ROUT1_VOL_OUT1VU | WM8960_LOUT1_ROUT1_VOL_OUT1VOL_0dB) },
+        /* Unmute DAC digital soft mute */
+        { .features = WM8960_FEATURE_SPEAKER,  .reg   = WM8960_REG_CTR1,
+          .value = WM8960_CTR1_DACMU_NO },
+
     };
 
     for (uint32_t i = 0; i < sizeof(operations) / sizeof(_mtb_wm8960_operation_t); i++)
@@ -344,7 +377,7 @@ void mtb_wm8960_set_write_retry_count(uint32_t count){
 //--------------------------------------------------------------------------------------------------
 // mtb_wm8960_init
 //--------------------------------------------------------------------------------------------------
-bool mtb_wm8960_init(mtb_wm8960_features_t features)
+bool mtb_wm8960_init(uint8_t features)
 {
     // use Wire and start it
     WM8960_LOG("mtb_wm8960_init");
@@ -433,11 +466,16 @@ bool mtb_wm8960_activate(void)
     {
         value = WM8960_PWR_MGMT2_PLL_EN_UP;
     }
-    /* Enable DACL, DACR, LOUT1 and ROUT1 */
+
     if ((enabled_features & WM8960_FEATURE_HEADPHONE) == WM8960_FEATURE_HEADPHONE)
     {
         value |= (WM8960_PWR_MGMT2_DACL_UP  | WM8960_PWR_MGMT2_DACR_UP |
                   WM8960_PWR_MGMT2_LOUT1_UP | WM8960_PWR_MGMT2_ROUT1_UP);
+    }
+    if ((enabled_features & WM8960_FEATURE_SPEAKER) == WM8960_FEATURE_SPEAKER)
+    {
+        value |= (WM8960_PWR_MGMT2_DACL_UP  | WM8960_PWR_MGMT2_DACR_UP |
+                  WM8960_PWR_MGMT2_SPKL_UP | WM8960_PWR_MGMT2_SPKR_UP);
     }
     result = mtb_wm8960_set(WM8960_REG_PWR_MGMT2, value);
     if (! result)
@@ -448,7 +486,7 @@ bool mtb_wm8960_activate(void)
     /******************** PWR_MGMT3 *******************/
     value = 0;
     /* Enable left output mixer and right output mixer */
-    if ((enabled_features & WM8960_FEATURE_HEADPHONE) == WM8960_FEATURE_HEADPHONE)
+    if (enabled_features & WM8960_FEATURE_HEADPHONE || enabled_features & WM8960_FEATURE_SPEAKER)
     {
         value |= (WM8960_PWR_MGMT3_LOMIX_UP | WM8960_PWR_MGMT3_ROMIX_UP);
     }
@@ -474,7 +512,7 @@ bool mtb_wm8960_deactivate(void)
 
     /******************** PWR_MGMT3 *******************/
     /* Disable left output mixer and right output mixer */
-    if ((enabled_features & WM8960_FEATURE_HEADPHONE) == WM8960_FEATURE_HEADPHONE)
+    if (enabled_features & WM8960_FEATURE_HEADPHONE || enabled_features &WM8960_FEATURE_SPEAKER) 
     {
         value |= (WM8960_PWR_MGMT3_LOMIX_UP | WM8960_PWR_MGMT3_ROMIX_UP);
     }
@@ -506,6 +544,13 @@ bool mtb_wm8960_deactivate(void)
         value &= ~(WM8960_PWR_MGMT2_DACL_UP  | WM8960_PWR_MGMT2_DACR_UP |
                    WM8960_PWR_MGMT2_LOUT1_UP | WM8960_PWR_MGMT2_ROUT1_UP);
     }
+    if ((enabled_features & WM8960_FEATURE_SPEAKER) == WM8960_FEATURE_SPEAKER)
+    {
+        /* Disable DACL, DACR, LOUT1 and ROUT1 */
+        value &= ~(WM8960_PWR_MGMT2_DACL_UP  | WM8960_PWR_MGMT2_DACR_UP |
+                   WM8960_PWR_MGMT2_SPKL_UP | WM8960_PWR_MGMT2_SPKR_UP);
+    }
+
     result = mtb_wm8960_write(WM8960_REG_PWR_MGMT2, value);
     if (! result)
     {
@@ -678,6 +723,35 @@ bool mtb_wm8960_adjust_heaphone_output_volume(uint8_t volume)
     return _mtb_wm8960_adjust_volume(volume, WM8960_REG_LOUT1_VOL, WM8960_REG_ROUT1_VOL,
                                      WM8960_LOUT1_ROUT1_VOL_OUT1VU,
                                      WM8960_LOUT1_ROUT1_VOL_OUT1VOL_6dB);
+}
+
+//--------------------------------------------------------------------------------------------------
+// mtb_wm8960_adjust_heaphone_output_volume
+//--------------------------------------------------------------------------------------------------
+bool mtb_wm8960_adjust_speaker_output_volume(uint8_t volume)
+{
+    WM8960_LOG("mtb_wm8960_adjust_heaphone_output_volume");
+    if (volume > WM8960_LOUT1_ROUT1_VOL_OUT1VOL_6dB)
+    {
+        return false;
+    }
+    return _mtb_wm8960_adjust_volume(volume, WM8960_REG_LOUT2_VOL, WM8960_REG_ROUT2_VOL,
+                                     WM8960_LOUT1_ROUT1_VOL_OUT1VU,
+                                     WM8960_LOUT1_ROUT1_VOL_OUT1VOL_6dB);
+
+}
+
+//--------------------------------------------------------------------------------------------------
+// mtb_wm8960_set_output_volume
+//--------------------------------------------------------------------------------------------------
+
+bool mtb_wm8960_set_output_volume(uint8_t volume){
+    bool result = true;
+    if (enabled_features & WM8960_FEATURE_SPEAKER == WM8960_FEATURE_SPEAKER )
+        result = result && mtb_wm8960_adjust_speaker_output_volume(volume);
+    if (enabled_features & WM8960_FEATURE_HEADPHONE == WM8960_FEATURE_HEADPHONE)
+        result = result && mtb_wm8960_adjust_heaphone_output_volume(volume);
+    return result;
 }
 
 

@@ -503,7 +503,8 @@ typedef enum
 {
     WM8960_FEATURE_NONE       = 0x00,                   /**< No features enabled */
     WM8960_FEATURE_MICROPHONE = 0x01,                   /**< Enable the microphone */
-    WM8960_FEATURE_HEADPHONE  = 0x02                    /**< Enable the headphone */
+    WM8960_FEATURE_HEADPHONE  = 0x02,                    /**< Enable the headphone */
+    WM8960_FEATURE_SPEAKER    = 0x04                    /**< Enable the class D speaker */
 } mtb_wm8960_features_t;
 
 /**
@@ -603,11 +604,11 @@ void mtb_wm8960_set_write_retry_count(uint32_t count);
  * - ROUT1 Vol = 0dB, volume update enabled
  * - Unmute DAC digital soft mute
  *
- * @param[in] features Features to enabled during initialization.
+ * @param[in] features Features to enabled during initialization. See mtb_wm8960_features_t
  * @ingroup wm8960
  * @return true if properly initialized, else an error indicating what went wrong.
  */
-bool mtb_wm8960_init(mtb_wm8960_features_t features);
+bool mtb_wm8960_init(uint8_t features);
 
 /**
  * @brief Frees up any resources allocated by the driver as part of \ref mtb_wm8960_init().
@@ -639,6 +640,34 @@ bool mtb_wm8960_adjust_input_volume(uint8_t volume);
  * @return true if properly initialized, else an error indicating what went wrong.
  */
 bool mtb_wm8960_adjust_heaphone_output_volume(uint8_t volume);
+
+/**
+ * @brief This function updates the volume of both the left and right channels of the
+ * speaker output.
+ *
+ * @param[in] volume - Steps of 1dB, where:
+ *            Minimum volume: -73dB (0x30)
+ *            Maximum volume: +6dB  (0x7F)
+ *            Mute: (0x00~0x2F)
+ * @ingroup wm8960
+ * @return true if properly initialized, else an error indicating what went wrong.
+ */
+bool mtb_wm8960_adjust_speaker_output_volume(uint8_t volume);
+
+
+/**
+ * @brief This function updates the volume of both the left and right channels of the
+ * speaker and headphones.
+ *
+ * @param[in] volume - Steps of 1dB, where:
+ *            Minimum volume: -73dB (0x30)
+ *            Maximum volume: +6dB  (0x7F)
+ *            Mute: (0x00~0x2F)
+ * @ingroup wm8960
+ * @return true if properly initialized, else an error indicating what went wrong.
+ */
+bool mtb_wm8960_set_output_volume(uint8_t volume);
+
 
 /**
  * @brief This function powers up the modules the required for the features enabled using

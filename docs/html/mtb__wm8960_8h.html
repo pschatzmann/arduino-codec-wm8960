@@ -71,6 +71,8 @@ $(function() {
 <div class="contents">
 <div class="textblock"><code>#include &lt;stdbool.h&gt;</code><br />
 <code>#include &lt;stdint.h&gt;</code><br />
+<code>#include &lt;stdio.h&gt;</code><br />
+<code>#include &lt;string.h&gt;</code><br />
 </div>
 <p><a href="mtb__wm8960_8h_source.html">Go to the source code of this file.</a></p>
 <table class="memberdecls">
@@ -79,7 +81,7 @@ Macros</h2></td></tr>
 <tr class="memitem:ac9903a4388a02199170a4076cfec0796"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="mtb__wm8960_8h.html#ac9903a4388a02199170a4076cfec0796">WM8960_I2C_ADDRESS</a>&#160;&#160;&#160;(0x1A)</td></tr>
 <tr class="separator:ac9903a4388a02199170a4076cfec0796"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9326767a1e58a805a7a1c994e60bf1b8"><td class="memItemLeft" align="right" valign="top"><a id="a9326767a1e58a805a7a1c994e60bf1b8"></a>
-#define&#160;</td><td class="memItemRight" valign="bottom"><b>WM8960_LOG</b>(msg)&#160;&#160;&#160;Serial.println(msg)</td></tr>
+#define&#160;</td><td class="memItemRight" valign="bottom"><b>WM8960_LOG</b>(msg)</td></tr>
 <tr class="separator:a9326767a1e58a805a7a1c994e60bf1b8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa1234d858585de13b938b81ee314c66c"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="mtb__wm8960_8h.html#aa1234d858585de13b938b81ee314c66c">MTB_RSLT_WM8960_BAD_ARG</a>&#160;&#160;&#160;false</td></tr>
 <tr class="separator:aa1234d858585de13b938b81ee314c66c"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -516,6 +518,7 @@ Enumerations</h2></td></tr>
 <tr class="memitem:a44fe0eb06c64bdb6671b21cd396acba7"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="mtb__wm8960_8h.html#a44fe0eb06c64bdb6671b21cd396acba7">mtb_wm8960_features_t</a> { <a class="el" href="mtb__wm8960_8h.html#a44fe0eb06c64bdb6671b21cd396acba7afba3a98f2b368b7bc2383c33909f23ad">WM8960_FEATURE_NONE</a> = 0x00
 , <a class="el" href="mtb__wm8960_8h.html#a44fe0eb06c64bdb6671b21cd396acba7af486b6abd63ba10d85b90e19614de19c">WM8960_FEATURE_MICROPHONE</a> = 0x01
 , <a class="el" href="mtb__wm8960_8h.html#a44fe0eb06c64bdb6671b21cd396acba7a00bf39cfecc25e92b55a218c2ed1ab1f">WM8960_FEATURE_HEADPHONE</a> = 0x02
+, <a class="el" href="mtb__wm8960_8h.html#a44fe0eb06c64bdb6671b21cd396acba7a348cb2e7ec052328523afdd8e538e746">WM8960_FEATURE_SPEAKER</a> = 0x04
  }</td></tr>
 <tr class="separator:a44fe0eb06c64bdb6671b21cd396acba7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aca788d578cf84c7593117749890f6b4c"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="mtb__wm8960_8h.html#aca788d578cf84c7593117749890f6b4c">mtb_wm8960_adc_dac_sample_rate_t</a> { <br />
@@ -550,12 +553,12 @@ Functions</h2></td></tr>
 <tr class="memitem:ga8ad4e1a1158ecd476eb10f1ce9cdecfa"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__wm8960.html#ga8ad4e1a1158ecd476eb10f1ce9cdecfa">mtb_wm8960_set_write_retry_count</a> (uint32_t count)</td></tr>
 <tr class="memdesc:ga8ad4e1a1158ecd476eb10f1ce9cdecfa"><td class="mdescLeft">&#160;</td><td class="mdescRight">Defines the number of times we retry to update a register value via I2C. This might help if you have an instable I2C connection. By default we set it to 1 which will cause the initialization to fail when the register update fails.  <a href="group__wm8960.html#ga8ad4e1a1158ecd476eb10f1ce9cdecfa">More...</a><br /></td></tr>
 <tr class="separator:ga8ad4e1a1158ecd476eb10f1ce9cdecfa"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga32564d5b76e60450ce865915ea9fad48"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__wm8960.html#ga32564d5b76e60450ce865915ea9fad48">mtb_wm8960_init</a> (<a class="el" href="mtb__wm8960_8h.html#a44fe0eb06c64bdb6671b21cd396acba7">mtb_wm8960_features_t</a> features)</td></tr>
-<tr class="memdesc:ga32564d5b76e60450ce865915ea9fad48"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialize the I2C communication with the audio codec, reset the codec and apply default configuration based on the feature(s) requested.  <a href="group__wm8960.html#ga32564d5b76e60450ce865915ea9fad48">More...</a><br /></td></tr>
-<tr class="separator:ga32564d5b76e60450ce865915ea9fad48"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gae06d07ab61d7585d7708902f7d7b1386"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__wm8960.html#gae06d07ab61d7585d7708902f7d7b1386">mtb_wm8960_init</a> (uint8_t features)</td></tr>
+<tr class="memdesc:gae06d07ab61d7585d7708902f7d7b1386"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialize the I2C communication with the audio codec, reset the codec and apply default configuration based on the feature(s) requested.  <a href="group__wm8960.html#gae06d07ab61d7585d7708902f7d7b1386">More...</a><br /></td></tr>
+<tr class="separator:gae06d07ab61d7585d7708902f7d7b1386"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga9595a8170bade5d4584177132fa46e38"><td class="memItemLeft" align="right" valign="top">
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__wm8960.html#ga9595a8170bade5d4584177132fa46e38">mtb_wm8960_free</a> ()</td></tr>
-<tr class="memdesc:ga9595a8170bade5d4584177132fa46e38"><td class="mdescLeft">&#160;</td><td class="mdescRight">Frees up any resources allocated by the driver as part of <a class="el" href="group__wm8960.html#ga32564d5b76e60450ce865915ea9fad48">mtb_wm8960_init()</a>. <br /></td></tr>
+<tr class="memdesc:ga9595a8170bade5d4584177132fa46e38"><td class="mdescLeft">&#160;</td><td class="mdescRight">Frees up any resources allocated by the driver as part of <a class="el" href="group__wm8960.html#gae06d07ab61d7585d7708902f7d7b1386">mtb_wm8960_init()</a>. <br /></td></tr>
 <tr class="separator:ga9595a8170bade5d4584177132fa46e38"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga624f60a1c413b03033ef9dc75492bd76"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__wm8960.html#ga624f60a1c413b03033ef9dc75492bd76">mtb_wm8960_adjust_input_volume</a> (uint8_t volume)</td></tr>
 <tr class="memdesc:ga624f60a1c413b03033ef9dc75492bd76"><td class="mdescLeft">&#160;</td><td class="mdescRight">This function updates the volume of both the left and right channels of the microphone input.  <a href="group__wm8960.html#ga624f60a1c413b03033ef9dc75492bd76">More...</a><br /></td></tr>
@@ -563,11 +566,17 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="grou
 <tr class="memitem:ga1105586f4f4da98dbd54c0814cc7a6e3"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__wm8960.html#ga1105586f4f4da98dbd54c0814cc7a6e3">mtb_wm8960_adjust_heaphone_output_volume</a> (uint8_t volume)</td></tr>
 <tr class="memdesc:ga1105586f4f4da98dbd54c0814cc7a6e3"><td class="mdescLeft">&#160;</td><td class="mdescRight">This function updates the volume of both the left and right channels of the headphone output.  <a href="group__wm8960.html#ga1105586f4f4da98dbd54c0814cc7a6e3">More...</a><br /></td></tr>
 <tr class="separator:ga1105586f4f4da98dbd54c0814cc7a6e3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga8a6b2160a2143f3f32336bcfea73552f"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__wm8960.html#ga8a6b2160a2143f3f32336bcfea73552f">mtb_wm8960_adjust_speaker_output_volume</a> (uint8_t volume)</td></tr>
+<tr class="memdesc:ga8a6b2160a2143f3f32336bcfea73552f"><td class="mdescLeft">&#160;</td><td class="mdescRight">This function updates the volume of both the left and right channels of the speaker output.  <a href="group__wm8960.html#ga8a6b2160a2143f3f32336bcfea73552f">More...</a><br /></td></tr>
+<tr class="separator:ga8a6b2160a2143f3f32336bcfea73552f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaf7e32c9bd0cfda38f5d056fbae6ff4e3"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__wm8960.html#gaf7e32c9bd0cfda38f5d056fbae6ff4e3">mtb_wm8960_set_output_volume</a> (uint8_t volume)</td></tr>
+<tr class="memdesc:gaf7e32c9bd0cfda38f5d056fbae6ff4e3"><td class="mdescLeft">&#160;</td><td class="mdescRight">This function updates the volume of both the left and right channels of the speaker and headphones.  <a href="group__wm8960.html#gaf7e32c9bd0cfda38f5d056fbae6ff4e3">More...</a><br /></td></tr>
+<tr class="separator:gaf7e32c9bd0cfda38f5d056fbae6ff4e3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga5664488035233b626fc216311e2dfe74"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__wm8960.html#ga5664488035233b626fc216311e2dfe74">mtb_wm8960_activate</a> (void)</td></tr>
-<tr class="memdesc:ga5664488035233b626fc216311e2dfe74"><td class="mdescLeft">&#160;</td><td class="mdescRight">This function powers up the modules the required for the features enabled using <a class="el" href="group__wm8960.html#ga32564d5b76e60450ce865915ea9fad48">mtb_wm8960_init</a>. This function is called in conjunction with <a class="el" href="group__wm8960.html#gae9f9920f1d040857310185a655a9e9f5">mtb_wm8960_deactivate</a>.  <a href="group__wm8960.html#ga5664488035233b626fc216311e2dfe74">More...</a><br /></td></tr>
+<tr class="memdesc:ga5664488035233b626fc216311e2dfe74"><td class="mdescLeft">&#160;</td><td class="mdescRight">This function powers up the modules the required for the features enabled using <a class="el" href="group__wm8960.html#gae06d07ab61d7585d7708902f7d7b1386">mtb_wm8960_init</a>. This function is called in conjunction with <a class="el" href="group__wm8960.html#gae9f9920f1d040857310185a655a9e9f5">mtb_wm8960_deactivate</a>.  <a href="group__wm8960.html#ga5664488035233b626fc216311e2dfe74">More...</a><br /></td></tr>
 <tr class="separator:ga5664488035233b626fc216311e2dfe74"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gae9f9920f1d040857310185a655a9e9f5"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__wm8960.html#gae9f9920f1d040857310185a655a9e9f5">mtb_wm8960_deactivate</a> (void)</td></tr>
-<tr class="memdesc:gae9f9920f1d040857310185a655a9e9f5"><td class="mdescLeft">&#160;</td><td class="mdescRight">This function powers down the modules the required for the features enabled using <a class="el" href="group__wm8960.html#ga32564d5b76e60450ce865915ea9fad48">mtb_wm8960_init</a>.  <a href="group__wm8960.html#gae9f9920f1d040857310185a655a9e9f5">More...</a><br /></td></tr>
+<tr class="memdesc:gae9f9920f1d040857310185a655a9e9f5"><td class="mdescLeft">&#160;</td><td class="mdescRight">This function powers down the modules the required for the features enabled using <a class="el" href="group__wm8960.html#gae06d07ab61d7585d7708902f7d7b1386">mtb_wm8960_init</a>.  <a href="group__wm8960.html#gae9f9920f1d040857310185a655a9e9f5">More...</a><br /></td></tr>
 <tr class="separator:gae9f9920f1d040857310185a655a9e9f5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1c1c02bdef631a8323c60d2390c99aea"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="mtb__wm8960_8h.html#a1c1c02bdef631a8323c60d2390c99aea">mtb_wm8960_read</a> (<a class="el" href="mtb__wm8960_8h.html#a50a59231d55e7a50b7ecb4ec4589e0e9">mtb_wm8960_reg_t</a> reg, uint16_t *data)</td></tr>
 <tr class="memdesc:a1c1c02bdef631a8323c60d2390c99aea"><td class="mdescLeft">&#160;</td><td class="mdescRight">This function reads value of an audio codec register.  <a href="mtb__wm8960_8h.html#a1c1c02bdef631a8323c60d2390c99aea">More...</a><br /></td></tr>
@@ -2875,6 +2884,8 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="grou
 <tr><td class="fieldname"><a id="a44fe0eb06c64bdb6671b21cd396acba7af486b6abd63ba10d85b90e19614de19c"></a>WM8960_FEATURE_MICROPHONE&#160;</td><td class="fielddoc"><p>Enable the microphone </p>
 </td></tr>
 <tr><td class="fieldname"><a id="a44fe0eb06c64bdb6671b21cd396acba7a00bf39cfecc25e92b55a218c2ed1ab1f"></a>WM8960_FEATURE_HEADPHONE&#160;</td><td class="fielddoc"><p>Enable the headphone </p>
+</td></tr>
+<tr><td class="fieldname"><a id="a44fe0eb06c64bdb6671b21cd396acba7a348cb2e7ec052328523afdd8e538e746"></a>WM8960_FEATURE_SPEAKER&#160;</td><td class="fielddoc"><p>Enable the class D speaker </p>
 </td></tr>
 </table>
 
