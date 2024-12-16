@@ -756,7 +756,7 @@ bool mtb_wm8960_adjust_heaphone_output_volume(uint8_t volume)
 //--------------------------------------------------------------------------------------------------
 bool mtb_wm8960_adjust_speaker_output_volume(uint8_t volume)
 {
-    WM8960_LOG("mtb_wm8960_adjust_heaphone_output_volume");
+    WM8960_LOG("mtb_wm8960_adjust_speaker_output_volume");
     if (volume > WM8960_LOUT1_ROUT1_VOL_OUT1VOL_6dB)
     {
         return false;
