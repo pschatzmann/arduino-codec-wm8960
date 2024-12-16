@@ -756,7 +756,7 @@ bool mtb_wm8960_adjust_heaphone_output_volume(uint8_t volume)
 //--------------------------------------------------------------------------------------------------
 bool mtb_wm8960_adjust_speaker_output_volume(uint8_t volume)
 {
-    WM8960_LOG("mtb_wm8960_adjust_heaphone_output_volume");
+    WM8960_LOG("mtb_wm8960_adjust_speaker_output_volume");
     if (volume > WM8960_LOUT1_ROUT1_VOL_OUT1VOL_6dB)
     {
         return false;
@@ -773,10 +773,10 @@ bool mtb_wm8960_adjust_speaker_output_volume(uint8_t volume)
 
 bool mtb_wm8960_set_output_volume(uint8_t volume){
     bool result = true;
-    if (enabled_features & WM8960_FEATURE_SPEAKER == WM8960_FEATURE_SPEAKER )
-        result = result && mtb_wm8960_adjust_speaker_output_volume(volume);
-    if (enabled_features & WM8960_FEATURE_HEADPHONE == WM8960_FEATURE_HEADPHONE)
-        result = result && mtb_wm8960_adjust_heaphone_output_volume(volume);
+    if ((enabled_features & WM8960_FEATURE_SPEAKER) == WM8960_FEATURE_SPEAKER )
+    result = result && mtb_wm8960_adjust_speaker_output_volume(volume);
+    if ((enabled_features & WM8960_FEATURE_HEADPHONE) == WM8960_FEATURE_HEADPHONE)
+    result = result && mtb_wm8960_adjust_heaphone_output_volume(volume);
     return result;
 }
 
